@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ name }} Details</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+        }
+
+        .header a {
+            color: white;
+            text-decoration: none;
+            font-size: 1em;
+            background-color: #4CAF50;
+            padding: 10px 20px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .header a:hover {
+            background-color: #45a049;
+        }
+
+        .container {
+            width: 80%;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .restaurant-detail {
+            margin-bottom: 20px;
+        }
+
+        img {
+            width: 300px;
+            height: auto;
+            display: block;
+            margin: 10px auto;
+        }
+
+        .back-btn {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 1.2em;
+            text-decoration: none;
+            color: #4CAF50;
+        }
+
+        .back-btn:hover {
+            color: #e91111;
+        }
+
+        .review-form {
+            margin-top: 30px;
+        }
+
+        .review-form label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .review-form select,
+        .review-form textarea {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            font-size: 1em;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        .review-form button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            border-radius: 5px;
+        }
+
+        .review-form button:hover {
+            background-color: #45a049;
+        }
+
+        .reviews {
+            margin-top: 30px;
+        }
+
+        .review {
+            border-bottom: 1px solid #ddd;
+            padding: 10px 0;
+        }
+
+        .review strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .flash-message {
+            margin-bottom: 20px;
+            font-size: 1.2em;
+            color: #4CAF50; /* 可以根據需要改成綠色 */
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .flash-message .alert {
+            margin: 0;
+        }
+
+    </style>
+</head>
+<body>
+    
+    <div class="container">
+        <h2>{{ name }} Details</h2>
+    
+        <div class="restaurant-detail">
+            <strong>Restaurant Type:</strong> {{ type }}<br>
+            <strong>Address:</strong> {{ address }}<br>
+            <strong>Phone:</strong> {{ phone }}<br>
+            <strong>Owner:</strong> {{ owner }}<br>
+            <strong>Rating:</strong> {{ rating }}<i class="fas fa-star"></i><br>
+            <strong>Description:</strong> <p>{{ description or 'No Description' }}</p>
+    
+            <!-- Show multiple images -->
+            {% if image %}
+                {% for img in image.split(',') %}
+                    <img src="{{ url_for('static', filename='images/' + img) }}" alt="{{ name }}" style="max-width: 300px; margin: 10px;"
+                         onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/default.jpg') }}';">
+                {% endfor %}
+            {% else %}
+                <p>No Images</p>
+            {% endif %}
+        </div>
+
+        <!-- User review submission form -->
+        {% if 'user' in session %}
+        <div class="review-form">
+            <h3>Post a Review</h3>
+            <form method="POST" onsubmit="return validateReview()">
+                <div class="form-group">
+                    <label for="rating">評分 (1-5) *</label>
+                    <input type="number" name="rating" id="rating" 
+                           min="1" max="5" required>
+                </div>
+                <div class="form-group">
+                    <label for="comment">評論</label>
+                    <textarea name="comment" id="comment"></textarea>
+                </div>
+                <button type="submit">提交評論</button>
+            </form>
+            <!-- 顯示 Flash 訊息 -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-message">
+                        {% for category, message in messages %}
+                            <div class="alert {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <h2>{{ name }} Details</h2>
+        </div>
+        {% else %}
+        <p>Please log in to submit a review.</p>
+        {% endif %}
+
+        <!-- Display existing reviews -->
+        <div class="reviews">
+            <h3>Other Reviews</h3>
+            {% for review in reviews %}
+            <div class="review">
+                <strong>{{ review.username }} - Rating: {{ review.rating }} Stars</strong>
+                <p>{{ review.comment or 'No Comment' }}</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <a href="{{ url_for('map') }}" class="back-btn">Back to Map</a>
+
+    </div>
+
+    <script>
+    function validateReview() {
+        const rating = document.getElementById('rating').value;
+        if (rating < 1 || rating > 5) {
+            alert('評分必須在 1 到 5 之間');
+            return false;
+        }
+        return true;
+    }
+    </script>
+</body>
+</html>
